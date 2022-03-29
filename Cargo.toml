@@ -1,11 +1,11 @@
 [package]
 name = "loutre_hublot"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Edgar Onghena <dev@edgar.bzh>"]
 edition = "2018"
 
 [dependencies]
-dotenv = "0.15"
-lettre = { version = "0.10.0-beta.3", features = ["rustls-tls", "file-transport"] }
-log = "0.4"
-rocket = "0.4"
+dotenv = "0.15.0"
+lettre = { version = "0.10.0-rc.4", features = ["file-transport", "tokio1-native-tls"] }
+log = "0.4.16"
+rocket = "0.5.0-rc.1"

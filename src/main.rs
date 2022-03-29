@@ -1,44 +1,33 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate rocket;
 
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
-use lettre::{FileTransport, Message, SmtpTransport, Transport};
-use rocket::http::hyper::header::Location;
-use rocket::request::Form;
-use rocket::State;
+use lettre::{AsyncTransport, Message};
+use rocket::form::Form;
+use rocket::response::Redirect;
+use rocket::{post, routes, FromForm, State};
 use std::time::Instant;
+
+type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
+type AsyncFileTransport = lettre::AsyncFileTransport<lettre::Tokio1Executor>;
 
 struct Mailer {
     pub from: Mailbox,
     pub to: Mailbox,
 
-    pub transport: SmtpTransport,
-    pub transport_fallback: FileTransport,
+    pub transport: AsyncSmtpTransport,
+    pub transport_fallback: AsyncFileTransport,
 
     pub error_message: &'static str,
     pub redirect_to: &'static str,
 }
 
-#[derive(Responder)]
-#[response(status = 303)]
-struct RawRedirect((), Location);
-
-impl RawRedirect {
-    fn to(uri: impl Into<String>) -> Self {
-        RawRedirect((), Location(uri.into()))
-    }
-}
-
 #[derive(FromForm)]
 struct ContactForm {
-    #[form(field = "first-name")]
+    #[field(name = "first-name")]
     first_name: String,
-    #[form(field = "last-name")]
+    #[field(name = "last-name")]
     last_name: String,
     email: String,
     subject: String,
@@ -46,7 +35,10 @@ struct ContactForm {
 }
 
 #[post("/contact", data = "<form>")]
-fn contact(form: Form<ContactForm>, mailer: State<Mailer>) -> Result<RawRedirect, &'static str> {
+async fn contact(
+    form: Form<ContactForm>,
+    mailer: &State<Mailer>,
+) -> Result<Redirect, &'static str> {
     let ContactForm {
         first_name,
         last_name,
@@ -66,23 +58,24 @@ fn contact(form: Form<ContactForm>, mailer: State<Mailer>) -> Result<RawRedirect
         .unwrap();
 
     let time = Instant::now();
-    match mailer.transport.send(&email) {
+    match mailer.transport.send(email.clone()).await {
         Ok(_) => {
             info!("e-mail took {:?} to send", time.elapsed());
-            Ok(RawRedirect::to(mailer.redirect_to))
+            Ok(Redirect::to(mailer.redirect_to))
         }
         Err(err) => {
             error!("couldn't send e-mail: {:?}", err);
             error!(
                 "  attempting to save e-mail as file: {:?}",
-                mailer.transport_fallback.send(&email),
+                mailer.transport_fallback.send(email).await,
             );
             Err(mailer.error_message)
         }
     }
 }
 
-fn main() {
+#[rocket::launch]
+fn launch() -> _ {
     let _ = dotenv::dotenv();
 
     let from = std::env::var("LH_FROM").unwrap();
@@ -90,7 +83,7 @@ fn main() {
 
     let credentials = Credentials::new(from, std::env::var("LH_PASSWORD").unwrap());
 
-    let transport = SmtpTransport::relay(&std::env::var("LH_SERVER").unwrap())
+    let transport = AsyncSmtpTransport::relay(&std::env::var("LH_SERVER").unwrap())
         .unwrap()
         .authentication(vec![Mechanism::Plain])
         .credentials(credentials)
@@ -111,14 +104,11 @@ fn main() {
         to: Mailbox::new(None, std::env::var("LH_TO").unwrap().parse().unwrap()),
 
         transport,
-        transport_fallback: FileTransport::new("."),
+        transport_fallback: AsyncFileTransport::new("."),
 
         error_message,
         redirect_to,
     };
 
-    rocket::ignite()
-        .manage(mailer)
-        .mount("/", routes![contact])
-        .launch();
+    rocket::build().manage(mailer).mount("/", routes![contact])
 }

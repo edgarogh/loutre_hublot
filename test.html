@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contact form</title>
+</head>
+<body>
+    <form action="http://127.0.0.1:8000/contact" method="post">
+        <fieldset>
+            <legend>You</legend>
+            <p>
+                <input type="text" name="first-name" placeholder="John" value="John">
+                <input type="text" name="last-name" placeholder="Doe" value="Doe">
+            </p>
+            <p>
+                <input type="email" name="email" placeholder="john.doe@example.com" value="john.doe@example.com">
+            </p>
+        </fieldset>
+        <fieldset>
+            <legend>Message</legend>
+            <p>
+                <input type="text" name="subject" placeholder="Help wanted" value="Help wanted">
+            </p>
+            <p>
+                <textarea name="message">Do you know how to turn off a light bulb ?</textarea>
+            </p>
+        </fieldset>
+        <input type="submit" value="Send">
+    </form>
+</body>
+</html>
