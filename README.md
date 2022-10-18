@@ -10,6 +10,7 @@ _Contact form mailing API_
     ```bash
     LH_SERVER=mail.example.com
     LH_FROM=loutre-hublot@example.com
+    LH_USER=loutre-hublot@example.com
     LH_PASSWORD=hunter2
     
     LH_TO=myself@example.com
