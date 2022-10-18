@@ -81,7 +81,10 @@ fn launch() -> _ {
     let from = std::env::var("LH_FROM").unwrap();
     let from_addr = from.parse().unwrap();
 
-    let credentials = Credentials::new(std::env::var("LH_USER").unwrap(), std::env::var("LH_PASSWORD").unwrap());
+    let credentials = Credentials::new(
+        std::env::var("LH_USER").unwrap_or(from),
+        std::env::var("LH_PASSWORD").unwrap(),
+    );
 
     let transport = AsyncSmtpTransport::relay(&std::env::var("LH_SERVER").unwrap())
         .unwrap()
