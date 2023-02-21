@@ -2,6 +2,7 @@
 extern crate log;
 
 use lettre::message::Mailbox;
+use lettre::message::header::ContentType;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use lettre::{AsyncTransport, Message};
 use rocket::form::Form;
@@ -54,6 +55,7 @@ async fn contact(
             "{} {} <{}> – {}",
             first_name, last_name, email, subject
         ))
+        .header(ContentType::TEXT_PLAIN)
         .body(message)
         .unwrap();
 
