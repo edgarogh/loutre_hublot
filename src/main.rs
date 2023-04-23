@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate log;
 
-use lettre::message::Mailbox;
 use lettre::message::header::ContentType;
+use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use lettre::{AsyncTransport, Message};
 use rocket::form::Form;
@@ -51,10 +51,7 @@ async fn contact(
     let email = Message::builder()
         .from(mailer.from.clone())
         .to(mailer.to.clone())
-        .subject(format!(
-            "{} {} <{}> – {}",
-            first_name, last_name, email, subject
-        ))
+        .subject(format!("{first_name} {last_name} <{email}> – {subject}"))
         .header(ContentType::TEXT_PLAIN)
         .body(message)
         .unwrap();
@@ -76,6 +73,8 @@ async fn contact(
     }
 }
 
+// The `async` is required for #[rocket::launch] to run this function inside a tokio reactor
+#[allow(clippy::unused_async)]
 #[rocket::launch]
 async fn launch() -> _ {
     let _ = dotenv::dotenv();
