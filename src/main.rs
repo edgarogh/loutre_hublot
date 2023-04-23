@@ -77,7 +77,7 @@ async fn contact(
 }
 
 #[rocket::launch]
-fn launch() -> _ {
+async fn launch() -> _ {
     let _ = dotenv::dotenv();
 
     let from = std::env::var("LH_FROM").unwrap();
