@@ -3,6 +3,7 @@ extern crate log;
 
 use lettre::message::header::ContentType;
 use lettre::message::header;
+use lettre::message::header::MessageId;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use lettre::{AsyncTransport, Message};
@@ -10,6 +11,7 @@ use rocket::form::Form;
 use rocket::response::Redirect;
 use rocket::{post, routes, FromForm, State};
 use std::time::Instant;
+use uuid::Uuid;
 
 type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
 type AsyncFileTransport = lettre::AsyncFileTransport<lettre::Tokio1Executor>;
@@ -49,12 +51,15 @@ async fn contact(
         message,
     } = form.into_inner();
 
+    let messageid = "<".to_owned() + &Uuid::new_v4().to_string() + "@" + &std::env::var("LH_SERVER").unwrap() + ">";
+
     let email = Message::builder()
         .from(mailer.from.clone())
         .to(mailer.to.clone())
         .subject(format!("{first_name} {last_name} <{email}> – {subject}"))
         .header(ContentType::TEXT_PLAIN)
         .header(header::MIME_VERSION_1_0)
+        .header(MessageId::from(messageid))
         .body(message)
         .unwrap();
 
