@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate log;
 
+use lettre::message::header;
 use lettre::message::header::ContentType;
+use lettre::message::header::MessageId;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use lettre::{AsyncTransport, Message};
@@ -9,6 +11,7 @@ use rocket::form::Form;
 use rocket::response::Redirect;
 use rocket::{post, routes, FromForm, State};
 use std::time::Instant;
+use uuid::Uuid;
 
 type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
 type AsyncFileTransport = lettre::AsyncFileTransport<lettre::Tokio1Executor>;
@@ -20,6 +23,7 @@ struct Mailer {
     pub transport: AsyncSmtpTransport,
     pub transport_fallback: AsyncFileTransport,
 
+    pub server_host: &'static str,
     pub error_message: &'static str,
     pub redirect_to: &'static str,
 }
@@ -48,11 +52,16 @@ async fn contact(
         message,
     } = form.into_inner();
 
+    let message_uuid = Uuid::new_v4();
+    let message_id = format!("<{message_uuid}@{}>", mailer.server_host);
+
     let email = Message::builder()
         .from(mailer.from.clone())
         .to(mailer.to.clone())
         .subject(format!("{first_name} {last_name} <{email}> – {subject}"))
         .header(ContentType::TEXT_PLAIN)
+        .header(header::MIME_VERSION_1_0)
+        .header(MessageId::from(message_id))
         .body(message)
         .unwrap();
 
@@ -80,6 +89,7 @@ async fn launch() -> _ {
     let _ = dotenv::dotenv();
 
     let from = std::env::var("LH_FROM").unwrap();
+    let from_name = std::env::var("LH_NAME").unwrap_or("LoutreHublot".to_string());
     let from_addr = from.parse().unwrap();
 
     let credentials = Credentials::new(
@@ -87,7 +97,12 @@ async fn launch() -> _ {
         std::env::var("LH_PASSWORD").unwrap(),
     );
 
-    let transport = AsyncSmtpTransport::relay(&std::env::var("LH_SERVER").unwrap())
+    let server_host = match std::env::var("LH_SERVER") {
+        Ok(server_host) => Box::leak(server_host.into_boxed_str()),
+        Err(_) => panic!("Missing LH_SERVER variable"),
+    };
+
+    let transport = AsyncSmtpTransport::relay(server_host)
         .unwrap()
         .authentication(vec![Mechanism::Plain])
         .credentials(credentials)
@@ -104,12 +119,13 @@ async fn launch() -> _ {
     };
 
     let mailer = Mailer {
-        from: Mailbox::new(Some("LoutreHublot".into()), from_addr),
+        from: Mailbox::new(Some(from_name), from_addr),
         to: Mailbox::new(None, std::env::var("LH_TO").unwrap().parse().unwrap()),
 
         transport,
         transport_fallback: AsyncFileTransport::new("."),
 
+        server_host,
         error_message,
         redirect_to,
     };
