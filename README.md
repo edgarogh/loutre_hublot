@@ -9,6 +9,7 @@ _Contact form mailing API_
   * Set the following environment variables (`.env`s are loaded):
     ```bash
     LH_SERVER=mail.example.com
+    LH_NAME="Sender's displayed name" # optional, defaults to "LoutreHublot"
     LH_FROM=loutre-hublot@example.com
     LH_USER=loutre-hublot@example.com # optional, defaults to LH_FROM
     LH_PASSWORD=hunter2

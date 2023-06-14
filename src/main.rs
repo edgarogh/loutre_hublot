@@ -80,6 +80,7 @@ async fn launch() -> _ {
     let _ = dotenv::dotenv();
 
     let from = std::env::var("LH_FROM").unwrap();
+    let from_name = std::env::var("LH_NAME").unwrap_or("LoutreHublot".to_string());
     let from_addr = from.parse().unwrap();
 
     let credentials = Credentials::new(
@@ -104,7 +105,7 @@ async fn launch() -> _ {
     };
 
     let mailer = Mailer {
-        from: Mailbox::new(Some("LoutreHublot".into()), from_addr),
+        from: Mailbox::new(Some(from_name.into()), from_addr),
         to: Mailbox::new(None, std::env::var("LH_TO").unwrap().parse().unwrap()),
 
         transport,
