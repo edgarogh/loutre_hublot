@@ -2,6 +2,7 @@
 extern crate log;
 
 use lettre::message::header::ContentType;
+use lettre::message::header;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use lettre::{AsyncTransport, Message};
@@ -53,6 +54,7 @@ async fn contact(
         .to(mailer.to.clone())
         .subject(format!("{first_name} {last_name} <{email}> – {subject}"))
         .header(ContentType::TEXT_PLAIN)
+        .header(header::MIME_VERSION_1_0)
         .body(message)
         .unwrap();
 
